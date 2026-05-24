@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRM Chăm Sóc Khách Hàng - Rose Gold Premium</title>
+    
+    <!-- CSS liên quan -->
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- FontAwesome Icons CDN để hiển thị biểu tượng cực đẹp -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Thư viện Chart.js vẽ biểu đồ thống kê chuyên nghiệp -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Thư viện SheetJS đọc file Excel client-side không cần server -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+
+    <div class="app-container">
+        
+        <!-- ========================================================================
+             SIDEBAR - THANH ĐIỀU HƯỚNG BÊN TRÁI
+             ======================================================================== -->
+        <aside class="sidebar">
+            <div class="brand-area">
+                <div class="brand-icon">
+                    <i class="fas fa-heart"></i>
+                </div>
+                <div class="brand-name">Pink CRM</div>
+            </div>
+            
+            <nav class="nav-menu">
+                <li class="nav-item active" data-tab="dashboard">
+                    <a class="nav-link">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Tổng Quan</span>
+                        <span class="badge" id="badge-follow-count" style="display: none;">0</span>
+                    </a>
+                </li>
+                <li class="nav-item" data-tab="contacts">
+                    <a class="nav-link">
+                        <i class="fas fa-address-book"></i>
+                        <span>Danh Bạ Khách</span>
+                    </a>
+                </li>
+                <li class="nav-item" data-tab="kanban">
+                    <a class="nav-link">
+                        <i class="fas fa-columns"></i>
+                        <span>Quy Trình Kanban</span>
+                    </a>
+                </li>
+                <li class="nav-item" data-tab="deals">
+                    <a class="nav-link">
+                        <i class="fas fa-handshake"></i>
+                        <span>Ưu Tiên & Đơn Hàng</span>
+                    </a>
+                </li>
+                <li class="nav-item" data-tab="calendar">
+                    <a class="nav-link">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>Lịch Cuộc Hẹn</span>
+                    </a>
+                </li>
+                <li class="nav-item" data-tab="celebrations">
+                    <a class="nav-link">
+                        <i class="fas fa-gift"></i>
+                        <span>Lễ Hội & Sinh Nhật</span>
+                    </a>
+                </li>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="avatar">AD</div>
+                <div class="user-info">
+                    <div class="user-name">Quản Trị Viên</div>
+                    <div class="user-role">Người Quản Lý CRM</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- ========================================================================
+             VÙNG NỘI DUNG CHÍNH (MAIN CONTENT)
+             ======================================================================== -->
+        <main class="main-content">
+            
+            <!-- Đầu trang -->
+            <header class="main-header">
+                <div class="page-title">
+                    <h1 id="header-tab-title"><i class="fas fa-house" style="color: var(--pink-primary); margin-right: 8px;"></i> Bảng Tổng Quan</h1>
+                    <p id="header-tab-desc">Theo dõi hiệu suất phễu bán hàng và lịch hẹn chăm sóc hôm nay</p>
+                </div>
+                
+                <div class="header-actions">
+                    <!-- Nút Thêm Khách Hàng Mới -->
+                    <button class="btn btn-primary" id="btn-add-customer">
+                        <i class="fas fa-plus"></i> Thêm Khách Hàng
+                    </button>
+                    <!-- Nút Tải Excel lên CRM -->
+                    <button class="btn btn-secondary" onclick="triggerExcelInput()">
+                        <i class="fas fa-file-excel"></i> Nhập Tệp Excel
+                    </button>
+                    <input type="file" id="excel-file-input" style="display: none;" accept=".xlsx, .xls, .csv">
+                </div>
+            </header>
+
+            <!-- ========================================================================
+                 TAB 1: TỔNG QUAN (DASHBOARD)
+                 ======================================================================== */ -->
+            <section class="tab-panel active" id="dashboard-tab">
+                <!-- Lưới chỉ số KPI chính -->
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <div class="kpi-details">
+                            <span class="kpi-label">Tổng Số Khách Hàng</span>
+                            <div class="kpi-value" id="kpi-total-cust">0</div>
+                            <span class="kpi-sub"><i class="fas fa-arrow-trend-up"></i> Cơ sở dữ liệu</span>
+                        </div>
+                        <div class="kpi-icon"><i class="fas fa-users"></i></div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-details">
+                            <span class="kpi-label">Cần Chăm Sóc Hôm Nay</span>
+                            <div class="kpi-value" id="kpi-active-follow">0</div>
+                            <span class="kpi-sub" style="color: var(--color-info);"><i class="fas fa-bell"></i> Lịch hẹn đã tới</span>
+                        </div>
+                        <div class="kpi-icon"><i class="fas fa-phone-alt"></i></div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-details">
+                            <span class="kpi-label">Chốt Thành Công (Won)</span>
+                            <div class="kpi-value" id="kpi-won">0</div>
+                            <span class="kpi-sub"><i class="fas fa-check-double"></i> Deal thành công</span>
+                        </div>
+                        <div class="kpi-icon"><i class="fas fa-trophy"></i></div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-details">
+                            <span class="kpi-label">Tỷ Lệ Chốt Thành Công</span>
+                            <div class="kpi-value" id="kpi-conversion">0%</div>
+                            <span class="kpi-sub" style="color: var(--gold-accent);"><i class="fas fa-percent"></i> Trên tổng số khách</span>
+                        </div>
+                        <div class="kpi-icon"><i class="fas fa-chart-pie"></i></div>
+                    </div>
+                </div>
+
+                <!-- Bố cục đồ thị & sự kiện nhanh -->
+                <div class="dashboard-grid">
+                    <!-- Biểu đồ trạng thái phễu khách hàng -->
+                    <div class="glass-card">
+                        <div class="card-title">
+                            <h3><i class="fas fa-chart-column" style="color: var(--pink-primary);"></i> Thống Kê Phễu Trạng Thái Khách Hàng</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="dashboard-status-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Danh sách Lịch hẹn/Lễ hội sắp diễn ra trong ngày -->
+                    <div class="glass-card">
+                        <div class="card-title">
+                            <h3><i class="fas fa-calendar-check" style="color: var(--gold-accent);"></i> Lịch Sự Kiện Sắp Tới</h3>
+                        </div>
+                        <div class="event-widget-list" id="dash-events-list">
+                            <!-- Nạp danh sách sự kiện tự động bằng JS -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========================================================================
+                 TAB 2: DANH BẠ LIÊN HỆ (CONTACTS DIRECTORY)
+                 ======================================================================== -->
+            <section class="tab-panel" id="contacts-tab">
+                <!-- Thanh Bộ lọc tìm kiếm thông minh -->
+                <div class="filter-bar">
+                    <div class="input-group">
+                        <i class="fas fa-search"></i>
+                        <input type="text" class="form-control" id="search-input" placeholder="Tìm tên, công ty, email, số điện thoại...">
+                    </div>
+                    <div>
+                        <select class="form-control" id="filter-status">
+                            <option value="all">-- Lọc theo Bước Quy Trình --</option>
+                            <option value="Khách hàng Mới">1. Khách hàng Mới (New Lead)</option>
+                            <option value="Đã Liên Hệ">2. Đã Liên Hệ (Contacted)</option>
+                            <option value="Đang Trao Đổi">3. Đang Trao Đổi (In Discussion)</option>
+                            <option value="Đã Gửi Báo Giá">4. Đã Gửi Báo Giá (Quotation Sent)</option>
+                            <option value="Đã Gửi Mẫu">5. Đã Gửi Mẫu (Sample Sent)</option>
+                            <option value="Chốt Thành Công">6. Chốt Thành Công (Won)</option>
+                            <option value="Tạm Ngưng/Thất Bại">7. Tạm Ngưng/Thất Bại (Lost)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <select class="form-control" id="filter-priority">
+                            <option value="all">-- Lọc theo Ưu Tiên --</option>
+                            <option value="Cao">🔺 Ưu Tiên Cao</option>
+                            <option value="Trung bình">🔸 Ưu Tiên Vừa</option>
+                            <option value="Thấp">🔹 Ưu Tiên Thấp</option>
+                        </select>
+                    </div>
+                    <div>
+                        <select class="form-control" id="filter-country">
+                            <option value="all">-- Lọc theo Quốc Gia --</option>
+                            <option value="Việt Nam">🇻🇳 Việt Nam</option>
+                            <option value="Mỹ">🇺🇸 Mỹ</option>
+                            <option value="Nhật Bản">🇯🇵 Nhật Bản</option>
+                            <option value="Hàn Quốc">🇰🇷 Hàn Quốc</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Bảng quản lý khách hàng -->
+                <div class="table-responsive">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th>Khách Hàng & Công Ty</th>
+                                <th>Số Điện Thoại</th>
+                                <th>Địa Chỉ Email</th>
+                                <th>Bước Quy Trình</th>
+                                <th>Độ Ưu Tiên</th>
+                                <th>Quốc Gia</th>
+                                <th>Thao Tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="contacts-table-body">
+                            <!-- Nạp danh sách khách hàng bằng JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- ========================================================================
+                 TAB 3: BẢNG KANBAN KÉO THẢ (PIPELINE BOARD)
+                 ======================================================================== -->
+            <section class="tab-panel" id="kanban-tab">
+                <div class="kanban-board" id="kanban-board-container">
+                    <!-- Vẽ động 7 cột quy trình kéo thả từ JS -->
+                </div>
+            </section>
+
+            <!-- ========================================================================
+                 TAB 4: ƯU TIÊN & HỢP ĐỒNG (DEALS AND AGREEMENTS)
+                 ======================================================================== -->
+            <section class="tab-panel" id="deals-tab">
+                <div class="deals-layout">
+                    <!-- Bên trái: Danh sách các giao dịch/hợp đồng quan trọng cần ưu tiên -->
+                    <div class="glass-card" style="flex-grow: 1;">
+                        <div class="card-title">
+                            <h3><i class="fas fa-star" style="color: var(--pink-primary);"></i> Giao Dịch & Hợp Đồng Cần Ưu Tiên Chốt Đơn</h3>
+                        </div>
+                        <div class="event-widget-list" id="deals-list-container" style="max-height: 500px;">
+                            <!-- Danh sách hợp đồng nạp từ JS -->
+                        </div>
+                    </div>
+
+                    <!-- Bên phải: Tóm tắt KPI và Quản lý dữ liệu JSON -->
+                    <div style="display: flex; flex-direction: column; gap: 24px;">
+                        <div class="glass-card">
+                            <div class="card-title">
+                                <h3><i class="fas fa-calculator"></i> Tóm Tắt Giá Trị</h3>
+                            </div>
+                            <div id="total-pipeline-value" style="padding: 10px 0;">
+                                <!-- Điền tổng giá trị phễu bằng JS -->
+                            </div>
+                        </div>
+
+                        <!-- Khối sao lưu dự phòng cơ sở dữ liệu CRM -->
+                        <div class="glass-card">
+                            <div class="card-title">
+                                <h3><i class="fas fa-database"></i> Sao Lưu & Phục Hồi</h3>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 8px;">
+                                <button class="btn btn-secondary" onclick="backupDatabase()">
+                                    <i class="fas fa-cloud-arrow-down"></i> Tải File Dự Phòng (.JSON)
+                                </button>
+                                <button class="btn btn-secondary" onclick="triggerImportBackup()">
+                                    <i class="fas fa-cloud-arrow-up"></i> Khôi Phục Từ File Dự Phòng
+                                </button>
+                                <input type="file" id="backup-file-input" style="display: none;" accept=".json" onchange="importDatabase(this)">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========================================================================
+                 TAB 5: LỊCH HẸN CHĂM SÓC (CRM CALENDAR)
+                 ======================================================================== -->
+            <section class="tab-panel" id="calendar-tab">
+                <div class="calendar-wrapper">
+                    <!-- Điều hướng lịch hẹn -->
+                    <div class="calendar-header">
+                        <button class="btn btn-secondary btn-icon" onclick="prevCalendarMonth()"><i class="fas fa-chevron-left"></i></button>
+                        <div class="calendar-title-text" id="calendar-month-title">Tháng 5 - Năm 2026</div>
+                        <button class="btn btn-secondary btn-icon" onclick="nextCalendarMonth()"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                    
+                    <!-- Lưới ngày biểu lịch tháng -->
+                    <div class="calendar-grid" id="calendar-grid-container">
+                        <!-- Vẽ lưới 42 ngày bằng JS -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========================================================================
+                 TAB 6: NGÀY LỄ & SINH NHẬT (CELEBRATIONS)
+                 ======================================================================== -->
+            <section class="tab-panel" id="celebrations-tab">
+                <div class="celebrations-layout">
+                    <!-- Khối bên trái: Sinh nhật khách hàng trong 30 ngày tới -->
+                    <div class="glass-card">
+                        <div class="card-title">
+                            <h3><i class="fas fa-birthday-cake" style="color: var(--pink-primary);"></i> Sinh Nhật Khách Hàng (Sắp Tới)</h3>
+                        </div>
+                        <div class="event-widget-list" id="birthdays-list">
+                            <!-- Nạp từ JS -->
+                        </div>
+                    </div>
+
+                    <!-- Khối bên phải: Ngày lễ lớn quốc gia của khách trong 30 ngày tới -->
+                    <div class="glass-card">
+                        <div class="card-title">
+                            <h3><i class="fas fa-globe" style="color: var(--gold-accent);"></i> Ngày Lễ Lớn Quốc Gia Của Đối Tác</h3>
+                        </div>
+                        <div class="event-widget-list" id="holidays-list">
+                            <!-- Nạp từ JS -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- ========================================================================
+             NGĂN KÉO CHI TIẾT KHÁCH HÀNG (SLIDE-OUT CUSTOMER DRAWER)
+             ======================================================================== -->
+        <div class="drawer-overlay" id="drawer-overlay" onclick="closeCustomerDrawer()"></div>
+        
+        <div class="drawer" id="drawer-container">
+            <div class="drawer-header">
+                <div class="drawer-title-meta">
+                    <h2 id="drawer-cust-name">Tên Khách Hàng</h2>
+                    <span style="font-size: 13px; color: var(--text-muted);" id="drawer-cust-company">Công ty</span>
+                </div>
+                <button class="drawer-close" onclick="closeCustomerDrawer()"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <div class="drawer-body">
+                <!-- Nút Hành Động Xã Hội Nhanh (Click to chat) -->
+                <div class="social-hub-actions">
+                    <a class="social-btn whatsapp" id="quick-link-whatsapp" target="_blank">
+                        <i class="fab fa-whatsapp"></i> Nhắn WhatsApp
+                    </a>
+                    <a class="social-btn viber" id="quick-link-viber" target="_blank">
+                        <i class="fab fa-viber"></i> Nhắn Viber
+                    </a>
+                    <a class="social-btn gmail" id="quick-link-gmail" target="_blank">
+                        <i class="far fa-envelope"></i> Gửi Gmail Nhanh
+                    </a>
+                </div>
+
+                <!-- Các Tab Con bên trong Drawer -->
+                <div class="drawer-tabs">
+                    <button class="drawer-tab-btn active" onclick="switchDrawerTab('timeline')"> Nhật Ký</button>
+                    <button class="drawer-tab-btn" onclick="switchDrawerTab('profile')">⚙️ Sửa Hồ Sơ</button>
+                    <button class="drawer-tab-btn" onclick="switchDrawerTab('email')">✉️ Soạn Mail Mẫu</button>
+                    <button class="drawer-tab-btn" onclick="switchDrawerTab('files')">📁 Lưu Trữ File</button>
+                </div>
+
+                <!-- TAB CON 1: NHẬT KÝ TƯƠNG TÁC (TIMELINE CHĂM SÓC) -->
+                <div class="drawer-tab-content active" id="drawer-tab-timeline">
+                    <!-- Biểu mẫu nhập Nhật ký mới nhanh -->
+                    <div class="email-box-composer">
+                        <h4 style="font-size: 14px; font-weight:600; color: var(--text-main); margin-bottom: 4px;">Ghi Nhận Hoạt Động & Lịch Hẹn</h4>
+                        <div class="info-field-grid">
+                            <div class="info-field-box">
+                                <label style="font-size:10px;">Phương thức tương tác</label>
+                                <select class="form-control" id="log-type-select" style="padding-left: 10px;">
+                                    <option value="call">📞 Cuộc Gọi (Phone Call)</option>
+                                    <option value="zalo">💬 Nhắn Tin (Zalo/Social)</option>
+                                    <option value="mail">✉️ Gửi Email (Gmail)</option>
+                                    <option value="other">⚙️ Hệ thống/Khác</option>
+                                </select>
+                            </div>
+                            <div class="info-field-box">
+                                <label style="font-size:10px;">Đặt lịch hẹn tiếp theo (Nếu có)</label>
+                                <input type="date" class="form-control" id="log-next-date" style="padding-left: 10px;">
+                            </div>
+                        </div>
+                        <div class="info-field-grid">
+                            <div class="info-field-box" style="grid-column: span 2;">
+                                <label style="font-size:10px;">Hình thức cuộc hẹn</label>
+                                <select class="form-control" id="log-next-type" style="padding-left: 10px;">
+                                    <option value="Call">📞 Đặt Lịch Gọi Điện (Follow-up Call)</option>
+                                    <option value="Meeting">👥 Đặt Lịch Cuộc Họp (Meeting/Họp đối tác)</option>
+                                    <option value="Email">✉️ Đặt Lịch Phản Hồi Mail (Email Follow-up)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="info-field-box">
+                            <label style="font-size:10px;">Chi tiết nội dung tương tác</label>
+                            <textarea class="form-control" id="log-content-input" rows="3" style="padding-left: 12px;" placeholder="Ghi chép nội dung vừa thỏa thuận với khách..."></textarea>
+                        </div>
+                        <button class="btn btn-primary" onclick="addFollowUpLog()" style="width: 100%; justify-content: center; margin-top: 8px;">
+                            <i class="fas fa-save"></i> Ghi Nhật Ký & Đặt Lịch
+                        </button>
+                    </div>
+
+                    <!-- Dòng thời gian hiển thị lịch sử chăm sóc -->
+                    <h4 style="font-size: 14px; font-weight:600; color: var(--text-main); margin-bottom: 4px;">Dòng Thời Gian Chăm Sóc (Timeline)</h4>
+                    <div class="timeline-container" id="timeline-container">
+                        <!-- Nạp dòng lịch sử timeline động bằng JS -->
+                    </div>
+                </div>
+
+                <!-- TAB CON 2: CHỈNH SỬA CHI TIẾT HỒ SƠ KHÁCH HÀNG -->
+                <div class="drawer-tab-content" id="drawer-tab-profile">
+                    <div class="info-field-grid">
+                        <div class="info-field-box">
+                            <label>Họ Và Tên</label>
+                            <input type="text" class="form-control" id="det-name" style="padding-left: 12px;">
+                        </div>
+                        <div class="info-field-box">
+                            <label>Công Ty/Đơn Vị</label>
+                            <input type="text" class="form-control" id="det-company" style="padding-left: 12px;">
+                        </div>
+                        <div class="info-field-box">
+                            <label>Số Điện Thoại</label>
+                            <input type="text" class="form-control" id="det-phone" style="padding-left: 12px;">
+                        </div>
+                        <div class="info-field-box">
+                            <label>Địa Chỉ Email</label>
+                            <input type="email" class="form-control" id="det-email" style="padding-left: 12px;">
+                        </div>
+                        <div class="info-field-box">
+                            <label>Nguồn Khách Hàng</label>
+                            <select class="form-control" id="det-source">
+                                <option value="Facebook">Mạng Xã Hội (Facebook/Zalo)</option>
+                                <option value="Website">Đăng ký Website</option>
+                                <option value="Triển lãm">Hội chợ/Triển lãm</option>
+                                <option value="Đối tác giới thiệu">Đối tác giới thiệu</option>
+                                <option value="Excel Import">Nhập từ tệp Excel</option>
+                            </select>
+                        </div>
+                        <div class="info-field-box">
+                            <label>Quy Trình Chăm Sóc</label>
+                            <select class="form-control" id="det-status">
+                                <option value="Khách hàng Mới">1. Khách hàng Mới (New Lead)</option>
+                                <option value="Đã Liên Hệ">2. Đã Liên Hệ (Contacted)</option>
+                                <option value="Đang Trao Đổi">3. Đang Trao Đổi (In Discussion)</option>
+                                <option value="Đã Gửi Báo Giá">4. Đã Gửi Báo Giá (Quotation Sent)</option>
+                                <option value="Đã Gửi Mẫu">5. Đã Gửi Mẫu (Sample Sent)</option>
+                                <option value="Chốt Thành Công">6. Chốt Thành Công (Won)</option>
+                                <option value="Tạm Ngưng/Thất Bại">7. Tạm Ngưng/Thất Bại (Lost)</option>
+                            </select>
+                        </div>
+                        <div class="info-field-box">
+                            <label>Độ Ưu Tiên</label>
+                            <select class="form-control" id="det-priority">
+                                <option value="Cao">🔺 Ưu Tiên Cao</option>
+                                <option value="Trung bình">🔸 Ưu Tiên Vừa</option>
+                                <option value="Thấp">🔹 Ưu Tiên Thấp</option>
+                            </select>
+                        </div>
+                        <div class="info-field-box">
+                            <label>Ngày Sinh Nhật</label>
+                            <input type="date" class="form-control" id="det-birthday" style="padding-left: 12px;">
+                        </div>
+                        <div class="info-field-box">
+                            <label>Quốc Gia</label>
+                            <select class="form-control" id="det-country">
+                                <option value="Việt Nam">Việt Nam 🇻🇳</option>
+                                <option value="Mỹ">Mỹ 🇺🇸</option>
+                                <option value="Nhật Bản">Nhật Bản 🇯🇵</option>
+                                <option value="Hàn Quốc">Hàn Quốc 🇰🇷</option>
+                            </select>
+                        </div>
+                        <div class="info-field-box">
+                            <label>Giá Trị Đơn Hàng Dự Kiến (đ)</label>
+                            <input type="number" class="form-control" id="det-deal-value" style="padding-left: 12px;">
+                        </div>
+                    </div>
+                    <div class="info-field-box">
+                        <label>Ghi Chú Đặc Điểm Khách Hàng</label>
+                        <textarea class="form-control" id="det-notes" rows="4" style="padding-left: 12px;"></textarea>
+                    </div>
+                    <button class="btn btn-primary" onclick="saveCustomerProfileFromDrawer()" style="width:100%; justify-content:center;">
+                        <i class="fas fa-save"></i> Cập Nhật & Lưu Hồ Sơ
+                    </button>
+                </div>
+
+                <!-- TAB CON 3: SOẠN EMAIL THEO TEMPLATE -->
+                <div class="drawer-tab-content" id="drawer-tab-email">
+                    <div class="email-box-composer">
+                        <div class="info-field-box">
+                            <label>Chọn Mẫu Email Soạn Sẵn</label>
+                            <select class="form-control" id="email-template-select" onchange="onEmailTemplateChange()">
+                                <!-- Load các template từ JS -->
+                            </select>
+                        </div>
+                        <div class="info-field-box">
+                            <label>Tiêu Đề Email</label>
+                            <input type="text" class="form-control" id="email-subject-input" style="padding-left: 12px;">
+                        </div>
+                        <div class="info-field-box">
+                            <label>Nội Dung Thư (Có Ghép Biến Tự Động)</label>
+                            <textarea class="form-control" id="email-body-input" rows="10" style="padding-left: 12px; font-family:var(--font-body); font-size:13px;"></textarea>
+                        </div>
+                        <button class="btn btn-primary" onclick="sendEmailDraft()" style="width:100%; justify-content:center;">
+                            <i class="fas fa-paper-plane"></i> Mở Gmail/Mail App Tạo Bản Nháp (Draft)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- TAB CON 4: LƯU TRỮ FILE TÀI LIỆU DƯỚI TRÌNH DUYỆT (INDEXEDDB VAULT) -->
+                <div class="drawer-tab-content" id="drawer-tab-files">
+                    <div class="file-upload-zone" onclick="document.getElementById('drawer-file-uploader').click()">
+                        <i class="fas fa-cloud-arrow-up"></i>
+                        <h4 style="font-size:13px; color:var(--text-main); font-weight:600;">Kéo thả hoặc Nhấp chuột tại đây để tải tài liệu</h4>
+                        <p style="font-size:11px; color:var(--text-muted); margin-top:4px;">Hỗ trợ PDF, Ảnh, file Excel báo giá, Word... (Dưới 15MB)</p>
+                        <input type="file" id="drawer-file-uploader" style="display: none;" onchange="uploadCustomerFile(this)">
+                    </div>
+                    
+                    <h4 style="font-size: 13px; font-weight:600; color: var(--text-main); margin-top: 10px;">Danh Sách Tệp Đã Lưu Cho Khách Hàng</h4>
+                    <div class="file-list" id="file-list-container">
+                        <!-- Nạp tệp từ IndexedDB tự động bằng JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================================================
+             MODAL 1: ÁNH XẠ CỘT EXCEL THÔNG MINH (EXCEL MAPPING MODAL)
+             ======================================================================== -->
+        <div class="modal-overlay" id="excel-mapping-modal">
+            <div class="modal-card">
+                <div class="modal-header">
+                    <h3><i class="fas fa-file-invoice" style="color: var(--pink-primary); margin-right: 8px;"></i> Ánh Xạ Cột Excel Nhập Khẩu</h3>
+                    <button class="drawer-close" onclick="closeExcelMappingModal()"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body">
+                    <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5;">
+                        Hệ thống đã phân tích các tiêu đề cột trong file Excel của bạn. Hãy liên kết các cột của tệp Excel tương ứng với các trường hồ sơ CRM phù hợp bên dưới để đảm bảo nạp dữ liệu chính xác 100%.
+                    </p>
+                    <div class="excel-mapping-grid" id="excel-mapping-fields">
+                        <!-- Nạp cấu trúc các trường ánh xạ bằng JS -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeExcelMappingModal()">Hủy Bỏ</button>
+                    <button class="btn btn-primary" onclick="confirmExcelImport()">Xác Nhận Nhập Dữ Liệu</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================================================
+             MODAL 2: THÊM MỚI KHÁCH HÀNG THỦ CÔNG (ADD CUSTOMER MODAL)
+             ======================================================================== -->
+        <div class="modal-overlay" id="add-customer-modal">
+            <div class="modal-card" style="max-width: 700px;">
+                <div class="modal-header">
+                    <h3><i class="fas fa-user-plus" style="color: var(--pink-primary); margin-right: 8px;"></i> Thêm Khách Hàng Mới Vào CRM</h3>
+                    <button class="drawer-close" onclick="closeAddCustomerModal()"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body" style="grid-gap: 16px;">
+                    <div class="info-field-grid">
+                        <div class="info-field-box">
+                            <label>Họ Và Tên (Bắt buộc)</label>
+                            <input type="text" class="form-control" id="add-name" style="padding-left: 12px;" placeholder="Ví dụ: Nguyễn Văn A">
+                        </div>
+                        <div class="info-field-box">
+                            <label>Tên Công Ty/Tổ Chức</label>
+                            <input type="text" class="form-control" id="add-company" style="padding-left: 12px;" placeholder="Ví dụ: Công ty TNHH ABC">
+                        </div>
+                        <div class="info-field-box">
+                            <label>Số Điện Thoại</label>
+                            <input type="text" class="form-control" id="add-phone" style="padding-left: 12px;" placeholder="Ví dụ: 0987654321">
+                        </div>
+                        <div class="info-field-box">
+                            <label>Địa Chỉ Email</label>
+                            <input type="email" class="form-control" id="add-email" style="padding-left: 12px;" placeholder="Ví dụ: khachhang@domain.com">
+                        </div>
+                        <div class="info-field-box">
+                            <label>Nguồn Khách Hàng</label>
+                            <select class="form-control" id="add-source">
+                                <option value="Facebook">Mạng Xã Hội (Facebook/Zalo)</option>
+                                <option value="Website">Đăng ký Website</option>
+                                <option value="Triển lãm">Hội chợ/Triển lãm</option>
+                                <option value="Đối tác giới thiệu">Đối tác giới thiệu</option>
+                            </select>
+                        </div>
+                        <div class="info-field-box">
+                            <label>Bước Quy Trình Ban Đầu</label>
+                            <select class="form-control" id="add-status">
+                                <option value="Khách hàng Mới">1. Khách hàng Mới (New Lead)</option>
+                                <option value="Đã Liên Hệ">2. Đã Liên Hệ (Contacted)</option>
+                                <option value="Đang Trao Đổi">3. Đang Trao Đổi (In Discussion)</option>
+                                <option value="Đã Gửi Báo Giá">4. Đã Gửi Báo Giá (Quotation Sent)</option>
+                                <option value="Đã Gửi Mẫu">5. Đã Gửi Mẫu (Sample Sent)</option>
+                                <option value="Chốt Thành Công">6. Chốt Thành Công (Won)</option>
+                                <option value="Tạm Ngưng/Thất Bại">7. Tạm Ngưng/Thất Bại (Lost)</option>
+                            </select>
+                        </div>
+                        <div class="info-field-box">
+                            <label>Độ Ưu Tiên</label>
+                            <select class="form-control" id="add-priority">
+                                <option value="Cao">🔺 Ưu Tiên Cao</option>
+                                <option value="Trung bình" selected>🔸 Ưu Tiên Vừa</option>
+                                <option value="Thấp">🔹 Ưu Tiên Thấp</option>
+                            </select>
+                        </div>
+                        <div class="info-field-box">
+                            <label>Sinh Nhật Khách Hàng</label>
+                            <input type="date" class="form-control" id="add-birthday" style="padding-left: 12px;">
+                        </div>
+                        <div class="info-field-box">
+                            <label>Quốc Gia</label>
+                            <select class="form-control" id="add-country">
+                                <option value="Việt Nam" selected>Việt Nam 🇻🇳</option>
+                                <option value="Mỹ">Mỹ 🇺🇸</option>
+                                <option value="Nhật Bản">Nhật Bản 🇯🇵</option>
+                                <option value="Hàn Quốc">Hàn Quốc 🇰🇷</option>
+                            </select>
+                        </div>
+                        <div class="info-field-box">
+                            <label>Giá Trị Đơn Hàng Dự Kiến (đ)</label>
+                            <input type="number" class="form-control" id="add-deal-value" style="padding-left: 12px;" placeholder="Ví dụ: 50000000">
+                        </div>
+                    </div>
+                    <div class="info-field-grid" style="border-top: 1.5px dashed var(--glass-border); padding-top: 12px; margin-top: 4px;">
+                        <div class="info-field-box">
+                            <label>Đặt Lịch Hẹn Gọi Tiếp Theo</label>
+                            <input type="date" class="form-control" id="add-next-date" style="padding-left: 12px;">
+                        </div>
+                        <div class="info-field-box">
+                            <label>Loại Cuộc Hẹn</label>
+                            <select class="form-control" id="add-next-type">
+                                <option value="Call">📞 Gọi Điện Tư Vấn (Follow-up Call)</option>
+                                <option value="Meeting">👥 Gặp Mặt/Họp Thảo Luận (Meeting)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="info-field-box">
+                        <label>Ghi Chú Ban Đầu</label>
+                        <textarea class="form-control" id="add-notes" rows="3" style="padding-left: 12px;" placeholder="Ghi nhận đặc điểm khách hàng..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeAddCustomerModal()">Hủy Bỏ</button>
+                    <button class="btn btn-primary" onclick="saveNewCustomer()">Thêm Khách Hàng</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Tải tệp xử lý logic chính -->
+    <script src="app.js"></script>
+</body>
+</html>
